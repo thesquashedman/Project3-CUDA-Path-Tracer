@@ -6,6 +6,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/random.h>
 #include <thrust/remove.h>
+#include <thrust/device_vector.h>
 
 #include "sceneStructs.h"
 #include "scene.h"
@@ -260,14 +261,17 @@ __global__ void shadeFakeMaterial(
             // If the material indicates that the object was a light, "light" the ray
             if (material.emittance > 0.0f) {
                 pathSegments[idx].color *= (materialColor * material.emittance);
+                //pathSegments[idx].remainingBounces = 0;
             }
             // Otherwise, do some pseudo-lighting computation. This is actually more
             // like what you would expect from shading in a rasterizer like OpenGL.
             // TODO: replace this! you should be able to start with basically a one-liner
             else {
+                scatterRay(pathSegments[idx], intersection.t * pathSegments[idx].ray.direction + pathSegments[idx].ray.origin, intersection.surfaceNormal, materials[intersection.materialId], rng);
                 float lightTerm = glm::dot(intersection.surfaceNormal, glm::vec3(0.0f, 1.0f, 0.0f));
                 pathSegments[idx].color *= (materialColor * lightTerm) * 0.3f + ((1.0f - intersection.t * 0.02f) * materialColor) * 0.7f;
                 pathSegments[idx].color *= u01(rng); // apply some noise because why not
+                
             }
             // If there was no intersection, color the ray black.
             // Lots of renderers use 4 channel color, RGBA, where A = alpha, often
@@ -291,6 +295,16 @@ __global__ void finalGather(int nPaths, glm::vec3* image, PathSegment* iteration
         image[iterationPath.pixelIndex] += iterationPath.color;
     }
 }
+
+
+struct is_Path_Done
+{
+    __host__ __device__
+        bool operator()(const PathSegment x)
+    {
+        return x.remainingBounces < 1;
+    }
+};
 
 /**
  * Wrapper for the __global__ call that sets up the kernel calls and does a ton
@@ -388,6 +402,20 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_paths,
             dev_materials
         );
+        
+
+        
+
+
+
+        //thrust::device_vector<PathSegment> thrust_paths(dev_paths, dev_path_end);
+
+        //auto end = thrust::remove_if(thrust_paths.begin(), thrust_paths.end(), is_Path_Done());
+        auto end = thrust::remove_if(thrust::device, dev_paths, dev_path_end, is_Path_Done());
+        if (end - dev_paths == 0)
+        {
+            iterationComplete = true;
+        }
         iterationComplete = true; // TODO: should be based off stream compaction results.
 
         if (guiData != NULL)
