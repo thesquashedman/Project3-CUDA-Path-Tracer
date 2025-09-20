@@ -157,13 +157,19 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
         int index = x + (y * cam.resolution.x);
         PathSegment& segment = pathSegments[index];
 
+        thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
+        thrust::uniform_real_distribution<float> u01(-0.5, 0.5);
+
+        float dispX = u01(rng);
+        float dispY = u01(rng);
+
         segment.ray.origin = cam.position;
         segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
         // TODO: implement antialiasing by jittering the ray
         segment.ray.direction = glm::normalize(cam.view
-            - cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
-            - cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
+            - cam.right * cam.pixelLength.x * ((float)x + dispX - (float)cam.resolution.x * 0.5f)
+            - cam.up * cam.pixelLength.y * ((float)y + dispY - (float)cam.resolution.y * 0.5f)
         );
 
         segment.pixelIndex = index;
@@ -294,7 +300,7 @@ __global__ void shadeFakeMaterial(
             else {
                 scatterRay(loadedSegment, intersection.t * loadedSegment.ray.direction + loadedSegment.ray.origin, intersection.surfaceNormal, materials[intersection.materialId], rng);
                 float lightTerm = glm::dot(intersection.surfaceNormal, glm::vec3(0.0f, 1.0f, 0.0f));
-                loadedSegment.color *= (materialColor * lightTerm) * 0.3f + ((1.0f - intersection.t * 0.02f) * materialColor) * 0.7f;
+                loadedSegment.color *= (materialColor * lightTerm) * 0.3f + ((1.0f - intersection.t * 0.02f) * materialColor) * 0.9f;
                 //loadedSegment.color *= u01(rng); // apply some noise because why not
                 
             }
