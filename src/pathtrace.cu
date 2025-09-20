@@ -262,11 +262,13 @@ __global__ void shadeFakeMaterial(
     {
         ShadeableIntersection intersection = shadeableIntersections[idx];
         PathSegment& loadedSegment = pathSegments[idx];
+        /*
         if (loadedSegment.remainingBounces == 0)
         {
             reduc_bool[idx] = 1;
             return;
         }
+        */
         if (intersection.t > 0.0f) // if the intersection exists...
         {
           // Set up the RNG
@@ -414,8 +416,11 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     checkCUDAError("generate camera ray");
 
     int depth = 0;
-    PathSegment* dev_path_end = dev_paths + pixelcount;
-    int num_paths = dev_path_end - dev_paths;
+    PathSegment* dev_paths_end = dev_paths + pixelcount;
+    PathSegment* dev_paths_start = dev_paths;
+
+
+    int num_paths = dev_paths_end - dev_paths;
 
     // --- PathSegment Tracing Stage ---
     // Shoot ray into scene, bounce between objects, push shading chunks
@@ -423,15 +428,16 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     bool iterationComplete = false;
     while (!iterationComplete)
     {
+        int num_working_paths = dev_paths_end - dev_paths_start;
         // clean shading chunks
         cudaMemset(dev_intersections, 0, pixelcount * sizeof(ShadeableIntersection));
 
         // tracing
-        dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
+        dim3 numblocksPathSegmentTracing = (num_working_paths + blockSize1d - 1) / blockSize1d;
         computeIntersections<<<numblocksPathSegmentTracing, blockSize1d>>> (
             depth,
-            num_paths,
-            dev_paths,
+            num_working_paths,
+            dev_paths_start,
             dev_geoms,
             hst_scene->geoms.size(),
             dev_intersections
@@ -449,22 +455,22 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         // TODO: compare between directly shading the path segments and shading
         // path segments that have been reshuffled to be contiguous in memory.
 
-        cudaMemset(dev_reduc_bool, 0, num_paths * sizeof(int));
-        cudaMemset(dev_reduc_scan, 0, num_paths * sizeof(int));
+        cudaMemset(dev_reduc_bool, 0, num_working_paths * sizeof(int));
+        cudaMemset(dev_reduc_scan, 0, num_working_paths * sizeof(int));
         
         //Note, bool array corresponding to empty paths built here
         shadeFakeMaterial<<<numblocksPathSegmentTracing, blockSize1d>>>(
             iter,
-            num_paths,
+            num_working_paths,
             dev_intersections,
-            dev_paths,
+            dev_paths_start,
             dev_materials,
             dev_reduc_bool
         );
         checkCUDAError("Shader failure");
         
-        thrust::device_vector<int> thrust_bool(dev_reduc_bool, dev_reduc_bool + num_paths);
-        thrust::device_vector<int> thrust_scan(num_paths);
+        thrust::device_vector<int> thrust_bool(dev_reduc_bool, dev_reduc_bool + num_working_paths);
+        thrust::device_vector<int> thrust_scan(num_working_paths);
 
         thrust::exclusive_scan(thrust_bool.begin(), thrust_bool.end(), thrust_scan.begin());
 
@@ -473,16 +479,19 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         //Get the number of hits
         int count;
         int lastElement;
-        cudaMemcpy(&count, dev_reduc_scan + num_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(&lastElement, dev_reduc_bool + num_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&count, dev_reduc_scan + num_working_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&lastElement, dev_reduc_bool + num_working_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
         count += lastElement;
 
         leftShiftScatter << <numblocksPathSegmentTracing, blockSize1d >> > 
-            (num_paths, dev_paths_copy, dev_paths, dev_reduc_bool, dev_reduc_scan);
+            (num_working_paths, dev_paths_copy + num_paths - num_working_paths, dev_paths_start, dev_reduc_bool, dev_reduc_scan);
         rightShiftScatter << <numblocksPathSegmentTracing, blockSize1d >> > 
-            (num_paths, dev_paths_copy, dev_paths, dev_reduc_bool, dev_reduc_scan, count);
+            (num_working_paths, dev_paths_copy + num_paths - num_working_paths, dev_paths_start, dev_reduc_bool, dev_reduc_scan, count);
 
-        std::swap(dev_paths, dev_paths_copy);
+        //Copy instead of swap, so that they actually contain the same info
+        cudaMemcpy(dev_paths, dev_paths_copy, num_paths * sizeof(PathSegment), cudaMemcpyDeviceToDevice);
+
+        //std::swap(dev_paths, dev_paths_copy);
         
 
         
@@ -497,9 +506,15 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             iterationComplete = true;
         }
         */
+        dev_paths_start += count;
+        if (dev_paths_end - dev_paths_start <= 0)
+        {
+            iterationComplete = true;
+        }
+        /*
         if(count == num_paths)
             iterationComplete = true; 
-
+        */
         if (guiData != NULL)
         {
             guiData->TracedDepth = depth;
