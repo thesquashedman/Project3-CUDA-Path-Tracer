@@ -12,6 +12,9 @@
 #include <cstdio>
 #include <iostream>
 
+
+
+
 float utilityCore::clamp(float f, float min, float max)
 {
     if (f < min)

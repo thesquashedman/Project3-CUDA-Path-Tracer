@@ -57,6 +57,8 @@ set(headers
     src/scene.h
     src/sceneStructs.h
     src/utilities.h
+    src/tiny_gltf.h
+    
 )
 
 set(sources
@@ -93,22 +95,31 @@ set(imgui_sources
     src/ImGui/imgui_widgets.cpp
 )
 
+
 list(SORT headers)
 list(SORT sources)
 list(SORT imgui_headers)
 list(SORT imgui_sources)
+
+
 
 source_group("Headers" FILES ${headers})
 source_group("Sources" FILES ${sources})
 source_group("ImGui\\Headers" FILES ${imgui_headers})
 source_group("ImGui\\Sources" FILES ${imgui_sources})
 
+
+
 #add_subdirectory(src/ImGui)
 #add_subdirectory(stream_compaction)  # TODO: uncomment if using your stream compaction
+#set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+#set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+#add_subdirectory(src/tinygltf-2.9.6)
 
 add_executable(${CMAKE_PROJECT_NAME} ${sources} ${headers} ${imgui_sources} ${imgui_headers})
 
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src/tinygltf-2.9.6)
+
+#target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "src/tinygltf-2.9.6")
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
     ${GL_LIBRARIES}

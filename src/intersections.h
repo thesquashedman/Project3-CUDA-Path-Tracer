@@ -71,3 +71,24 @@ __host__ __device__ float sphereIntersectionTest(
     glm::vec3& intersectionPoint,
     glm::vec3& normal,
     bool& outside);
+/**
+* Note, assumes triangles are given in world space.
+*/
+__host__ __device__ float triangleIntersectionTest(
+    Tri triangle,
+    Ray r,
+    glm::vec3& intersectionPoint,
+    glm::vec3& normal,
+    bool& outside);
+
+__host__ __device__ float bvhIntersectionTest(
+    BVHNode* node,
+    int index,
+    Ray r,
+    Tri* tris,
+    glm::vec3& intersectionPoint,
+    glm::vec3& normal,
+    glm::vec2& uv,
+    int& triangleIndex,
+    bool& outside
+    );

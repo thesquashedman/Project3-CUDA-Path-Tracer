@@ -1,4 +1,6 @@
 #include "intersections.h"
+#include "glm/glm.hpp"
+#include "glm/gtx/norm.hpp"
 
 __host__ __device__ float boxIntersectionTest(
     Geom box,
@@ -104,10 +106,182 @@ __host__ __device__ float sphereIntersectionTest(
 
     intersectionPoint = multiplyMV(sphere.transform, glm::vec4(objspaceIntersection, 1.f));
     normal = glm::normalize(multiplyMV(sphere.invTranspose, glm::vec4(objspaceIntersection, 0.f)));
+    /*
     if (!outside)
     {
         normal = -normal;
     }
-
+    */
     return glm::length(r.origin - intersectionPoint);
 }
+//https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution.html
+__host__ __device__ float triangleIntersectionTest(Tri triangle, Ray r, glm::vec3& intersectionPoint, glm::vec3& normal, bool& outside)
+{
+    //TODO compute outside
+
+    glm::vec3 N = glm::cross(triangle.pos[1] - triangle.pos[0], triangle.pos[2] - triangle.pos[0]);
+    // Step 1: Finding P
+
+    // Check if the ray and plane are parallel
+
+
+    float NDotRayDirection = glm::dot(N, r.direction);
+
+    if (glm::abs(NDotRayDirection) < 0.00001) // Almost 0
+        return -1; // They are parallel, so they don't intersect!
+
+    // Compute d parameter using equation 2
+    float d = -glm::dot(N, triangle.pos[0]);
+    // Compute t (equation 3)
+    float t = (-glm::dot(N, r.origin) + d) / NDotRayDirection;
+
+    // Check if the triangle is behind the ray
+    if (t < 0) return -1; // The triangle is behind
+
+    // Compute the intersection point using equation 1
+    glm::vec3 P = r.origin + t * r.direction;
+    // Step 2: Inside-Outside Test
+    glm::vec3 Ne;
+    // Test sidedness of P w.r.t. edge v0v1
+    glm::vec3 v0p = P - triangle.pos[0];
+    Ne = glm::cross(triangle.pos[1] - triangle.pos[0], v0p);
+    if (glm::dot(N, Ne) < 0) return -1;  // P is on the right side
+    // Test sidedness of P w.r.t. edge v2v1
+    glm::vec3 v1p = P - triangle.pos[1];
+    Ne = glm::cross(triangle.pos[2] - triangle.pos[1], v1p);
+    if (glm::dot(N, Ne) < 0) return -1;  // P is on the right side
+
+    // Test sidedness of P w.r.t. edge v2v0
+    glm::vec3 v2p = P - triangle.pos[2];
+    Ne = glm::cross(triangle.pos[0] - triangle.pos[2], v2p);
+    if (glm::dot(N, Ne) < 0) return -1;  // P is on the right side
+
+    intersectionPoint = P;
+    normal = glm::normalize(N);
+
+    return t;
+}
+__host__ __device__ float bvhIntersectionTest(
+    BVHNode* node,
+    int initialIndex,
+    Ray r,
+    Tri* tris,
+    glm::vec3& intersectionPoint,
+    glm::vec3& normal,
+	glm::vec2& uv,
+    int& triangleIndex,
+    bool& outside)
+{
+	int stack[64];
+	stack[0] = initialIndex;
+    int curr = 0;
+	float closestT = FLT_MAX;
+	bool hit = false;
+
+	
+    while (curr >=0)
+    {
+
+        int index = stack[curr];
+        curr--;
+
+
+        
+        glm::vec3 invDir = 1.0f / r.direction;
+        glm::vec3 tmin = (node[index].bboxMin - r.origin) * invDir;
+        glm::vec3 tmax = (node[index].bboxMax - r.origin) * invDir;
+
+        float tminx = glm::min(tmin.x, tmax.x);
+        float tmaxx = glm::max(tmin.x, tmax.x);
+
+        float tminy = glm::min(tmin.y, tmax.y);
+        float tmaxy = glm::max(tmin.y, tmax.y);
+
+        float tminz = glm::min(tmin.z, tmax.z);
+        float tmaxz = glm::max(tmin.z, tmax.z);
+        float t0 = glm::max(tminx, glm::max(tminy, tminz));
+        float t1 = glm::min(tmaxx, glm::min(tmaxy, tmaxz));
+        
+
+        if (t0 < t1)
+        {
+            //If leaf node, intersect with triangles
+            if (node[index].left == -1 && node[index].right == -1)
+            {
+
+                for (int i = node[index].triIndexStart; i <= node[index].triIndexEnd; i++)
+                {
+                    float t = -1;
+					glm::vec3 tmp_intersect;
+					glm::vec3 tmp_normal;
+					glm::vec2 tmp_uv;
+
+
+                    glm::vec3 baryPosition;
+                    bool intersects = glm::intersectRayTriangle(r.origin, r.direction,
+                        tris[i].pos[0], tris[i].pos[1], tris[i].pos[2], baryPosition);
+
+                    if (intersects)
+                    {
+
+                        t = baryPosition.z;
+                        tmp_intersect = r.origin + t * r.direction;
+
+                        tmp_normal = glm::normalize(glm::cross(tris[i].pos[1] - tris[i].pos[0], tris[i].pos[2] - tris[i].pos[0]));
+                        glm::vec2 uv0 = tris[i].uv[0];
+						glm::vec2 uv1 = tris[i].uv[1];
+						glm::vec2 uv2 = tris[i].uv[2];
+						tmp_uv = baryPosition.x * tris[i].uv[1] + baryPosition.y * tris[i].uv[2] + (1 - baryPosition.x - baryPosition.y) * tris[i].uv[0];
+
+
+                    }
+                    else
+                    {
+                        t = -1;
+                    }
+
+
+                    if (t > 0.0f && closestT > t)
+                    {
+                        closestT = t;
+
+                        intersectionPoint = tmp_intersect;
+                        normal = tmp_normal;
+						uv = tmp_uv;
+						triangleIndex = i;
+						hit = true;
+
+                    }
+                }
+
+            }
+            else
+            {
+				//Else push children to stack. Add right first so left nodes are handles first, for better coherency
+
+                curr++;
+				stack[curr] = node[index].right;;
+				curr++;
+				stack[curr] = node[index].left;
+
+
+            }
+
+
+        }
+
+        
+	}
+	
+    if (hit == false)
+    {
+        return -1;
+    }
+    return closestT;
+
+}
+
+    
+
+
+
