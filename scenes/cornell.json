@@ -86,11 +86,11 @@
         },
       {
         "TYPE": "mesh",
-        "NAME": "RatAndKnight.gltf",
+        "NAME": "Mario.gltf",
         "MATERIAL": "diffuse_green",
-        "TRANS": [ 0.0, 0.0, -5.0 ],
+        "TRANS": [ 0.0, 0.0, -0.5 ],
         "ROTAT": [ 0.0, 0.0, 0.0 ],
-        "SCALE": [ 0.8, 0.8, 0.8 ]
+        "SCALE": [ 1.5, 1.5, 1.5 ]
       }
     ]
 }

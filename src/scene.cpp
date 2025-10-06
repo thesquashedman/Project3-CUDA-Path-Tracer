@@ -276,6 +276,17 @@ void Scene::loadGLTF(const std::string& meshFile, glm::mat4 transform)
                 {
                     newMaterial.textureId = mat.pbrMetallicRoughness.baseColorTexture.index;
                 }
+                //emmision
+                
+                if(mat.emissiveFactor.size() == 3)
+                {
+                    if(mat.emissiveFactor[0] > 0 || mat.emissiveFactor[1] > 0 || mat.emissiveFactor[2] > 0)
+                    {
+                        newMaterial.emittance = 1.0f;
+                        newMaterial.color = glm::vec3(mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
+					}
+				}
+                
                 materials.push_back(newMaterial);
             }
 
@@ -330,7 +341,7 @@ void Scene::loadGLTF(const std::string& meshFile, glm::mat4 transform)
 
 						x = x - floor(x);
 						y = y - floor(y);
-						y = 1.0f - y; //Flip the y coordinate
+						//y = 1.0f - y; //Flip the y coordinate
                         glm::vec2 vec = glm::vec2(x, y);
                         if(vec.x > 1.0f || vec.y > 1.0f)
                         {

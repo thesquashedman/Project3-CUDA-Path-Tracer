@@ -402,7 +402,21 @@ __global__ void shadeFakeMaterial(
 
             // If the material indicates that the object was a light, "light" the ray
             if (material.emittance > 0.0f) {
-                loadedSegment.color *= (materialColor * material.emittance);
+                glm::vec3 textureColor = glm::vec3(1.0f, 1.0f, 1.0f);
+                //Material material = materials[intersection.materialId];
+                if (material.textureId != -1)
+                {
+                    Texture texInfo = textures[material.textureId];
+                    //float uvX = intersection.uv.x;
+                    //float uvY = intersection.uv.y;
+                    //int tx = uvX * texInfo.width;
+                    //int ty = uvY * texInfo.height;
+                    int tx = glm::clamp(int(intersection.uv.x * texInfo.width), 0, texInfo.width - 1);
+                    int ty = glm::clamp(int(intersection.uv.y * texInfo.height), 0, texInfo.height - 1);
+                    textureColor = textureData[texInfo.dataStart + tx + ty * texInfo.width];
+
+                }
+                loadedSegment.color *= (materialColor * textureColor * material.emittance);
                 loadedSegment.remainingBounces = 0;
                 
             }
@@ -411,7 +425,7 @@ __global__ void shadeFakeMaterial(
             // TODO: replace this! you should be able to start with basically a one-liner
             else {
 				glm::vec3 textureColor = glm::vec3(1.0f, 1.0f, 1.0f);
-				Material material = materials[intersection.materialId];
+				//Material material = materials[intersection.materialId];
                 if (material.textureId != -1)
                 {
 					Texture texInfo = textures[material.textureId];
@@ -435,7 +449,7 @@ __global__ void shadeFakeMaterial(
             // This can be useful for post-processing and image compositing.
         }
         else {
-            loadedSegment.color = glm::vec3(0.0f);
+            loadedSegment.color *= glm::vec3(.53f, .81f, .92f) * 1.0f;
             loadedSegment.remainingBounces = 0;
         }
         if (loadedSegment.remainingBounces == 0)
