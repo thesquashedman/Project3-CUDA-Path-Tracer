@@ -30,6 +30,7 @@ https://sketchfab.com/3d-models/rat-dd5d6fbd6edc42e9950778a4ea1fd352
 
 ## Performance Analysis
 
+### Meshes, BVH, and Mat Sort
 Firstly, we compare the render times between a sphere primitive, the dark knight model (44k triangles), and the rat model (100k triangles, with emmisive elements), within an open cornell box. We turn the BVH on and compare the performance between models, as well as the impacts of sorting the materials before shading.
 
 <img width="500" height="500" alt="bargraphmaker net-bargraph" src="https://github.com/user-attachments/assets/315f5418-e199-4546-8023-b19ef0e4a7ec" />
@@ -41,6 +42,17 @@ To better illustrate the performance gains from BVH, below is a graph showcasing
 <img width="500" height="500" alt="bargraphmaker net-bargraph(1)" src="https://github.com/user-attachments/assets/6d70d73e-9af4-4750-9e67-e822c5293536" />
 
 As seen above, the costs to render a single frame skyrocket. As it turns out, having to test a ray's intersection with hundreds of thousands of triangles is expensive. The BVH helps alleviate that by significantly reducing the number of triangles (logn instead of n) we have to test, at a small memory overhead.
+
+### Stream Compaction
+
+Using stream compaction, we can run the ray intersection kernel on only the rays that are still working (ones that haven't hit a light or the sky), saving gpu resources. In our scenes, we generate 640,000 rays (one for each pixel). Below is how many we rays we eliminate on the first bounce for two different scenes.
+
+|   Closed Scene  |  Open Scene    |
+|--------|------------|
+| <img width="200" height="200" alt="pavelscene 2025-10-08_15-42-26z 5000samp" src="https://github.com/user-attachments/assets/d56b3977-ad76-4f72-9699-7464ecc9f32e" />| <img width="200" height="200" alt="cornell 2025-10-09_02-06-51z 5000samp" src="https://github.com/user-attachments/assets/6a0abb18-48c1-4e1f-9a71-1d6776755d9b" /> |
+| 42883 rays eliminated | 117192 rays eliminated |
+
+As can be seen above, a significant amount of rays are eliminated , around 1/12 for the closed scene and 1/6 for the more open scene. With less rays, the less busy the memory bus is, leading to an improved performance overall.
 
 ## Gallery 
 
