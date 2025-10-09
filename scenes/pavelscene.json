@@ -36,7 +36,7 @@
         "ITERATIONS":5000,
         "DEPTH": 8,
         "FILE":"pavelscene",
-        "EYE":[0.0,5.0,10.5],
+        "EYE":[0.0,5.0,10.0],
         "LOOKAT":[0.0,5.0,0.0],
         "UP":[0.0,1.0,0.0]
     },
@@ -52,9 +52,38 @@
       "ROTAT": [ 0.0, 90.0, 0.0 ],
       "SCALE": [ 0.01, 7.0, 17.0 ]
     },
+
+    {
+      "TYPE": "cube",
+      "MATERIAL": "light",
+      "TRANS": [ -5.0, 12.0, -5.0 ],
+      "ROTAT": [ 0.0, 0.0, 0.0 ],
+      "SCALE": [ 5.0, 0.3, 5.0 ]
+    },
+    {
+      "TYPE": "cube",
+      "MATERIAL": "light",
+      "TRANS": [ -5.0, 12.0, 5.0 ],
+      "ROTAT": [ 0.0, 0.0, 0.0 ],
+      "SCALE": [ 5.0, 0.3, 5.0 ]
+    },
+    {
+      "TYPE": "cube",
+      "MATERIAL": "light",
+      "TRANS": [ 5.0, 12.0, -5.0 ],
+      "ROTAT": [ 0.0, 0.0, 0.0 ],
+      "SCALE": [ 5.0, 0.3, 5.0 ]
+    },
+    {
+      "TYPE": "cube",
+      "MATERIAL": "light",
+      "TRANS": [ 5.0, 12.0, 5.0 ],
+      "ROTAT": [ 0.0, 0.0, 0.0 ],
+      "SCALE": [ 5.0, 0.3, 5.0 ]
+    },
     {
       "TYPE": "mesh",
-      "NAME": "MarioAndDarkKnight.gltf",
+      "NAME": "MarioAndDarkKnightInside.gltf",
       "MATERIAL": "diffuse_green",
       "TRANS": [ 2.0, 0.0, 0.0 ],
       "ROTAT": [ 0.0, -90.0, 0.0 ],

@@ -286,7 +286,6 @@ void Scene::loadGLTF(const std::string& meshFile, glm::mat4 transform)
                         newMaterial.color = glm::vec3(mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
 					}
 				}
-                
                 materials.push_back(newMaterial);
             }
 

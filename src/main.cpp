@@ -270,6 +270,7 @@ void RenderImGui()
     static float f = 0.0f;
     static int counter = 0;
 
+    
     ImGui::Begin("Path Tracer Analytics");                  // Create a window called "Hello, world!" and append into it.
     
     // LOOK: Un-Comment to check the output window and usage
@@ -287,7 +288,7 @@ void RenderImGui()
     ImGui::Text("Traced Depth %d", imguiData->TracedDepth);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
-
+    
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

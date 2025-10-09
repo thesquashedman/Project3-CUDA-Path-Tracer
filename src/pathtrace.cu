@@ -103,6 +103,8 @@ static glm::vec3* dev_textureData = NULL;
 
 static Texel<texelDimX* texelDimY* texelDimZ> tex;
 
+
+
 void InitDataContainer(GuiDataContainer* imGuiData)
 {
     guiData = imGuiData;
@@ -282,7 +284,7 @@ __global__ void computeIntersections(
                     if (t > 0.0f && t_min > t)
                     {
                         t_min = t;
-                        hit_geom_index = i;
+                        hit_geom_index = tris[j].geomId;;
                         intersect_point = tmp_intersect;
                         normal = tmp_normal;
                     }
@@ -449,7 +451,7 @@ __global__ void shadeFakeMaterial(
             // This can be useful for post-processing and image compositing.
         }
         else {
-            loadedSegment.color *= glm::vec3(.53f, .81f, .92f) * 1.0f;
+            loadedSegment.color *= glm::vec3(.53f, .81f, .92f) * 0.5f;
             loadedSegment.remainingBounces = 0;
         }
         if (loadedSegment.remainingBounces == 0)
@@ -574,7 +576,7 @@ void pathtrace(uchar4* pbo, int frame, int iter)
 
     // --- PathSegment Tracing Stage ---
     // Shoot ray into scene, bounce between objects, push shading chunks
-
+    int rayCount = 0;
     bool iterationComplete = false;
     while (!iterationComplete)
     {
@@ -649,6 +651,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         cudaMemcpy(&count, dev_reduc_scan + num_working_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&lastElement, dev_reduc_bool + num_working_paths - 1, sizeof(int), cudaMemcpyDeviceToHost);
         count += lastElement;
+
+		rayCount += count;
 
         leftShiftScatter << <numblocksPathSegmentTracing, blockSize1d >> > 
             (num_working_paths, dev_paths_copy + num_paths - num_working_paths, dev_paths_start, dev_reduc_bool, dev_reduc_scan);
