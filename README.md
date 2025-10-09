@@ -8,7 +8,7 @@ CUDA Path Tracer
 * Tested on: Windows 11, Intel Core Ultra 5 225f, NVIDIA GeForce RTX 5060
 
 ### Introduction
-This is a CUDA based ray tracer. It supports loading of GLTF meshes and their diffuse textures using tinygltf. It supports two types of materials, a diffuse material and a perfectly specular material. It is optimized with stream compaction to eliminate finished rays, and a BVH spatial structure to speed up triangle ray intersections. It gives the option to optimize by performing a material sort, but due to only supporting two materials of similiar cost, very little performance gain is achieved.
+This is a CUDA based ray tracer. It supports loading of GLTF meshes and their diffuse textures using tinygltf. It supports two types of materials, a diffuse material and a perfectly specular material. It is optimized with stream compaction to eliminate finished rays, and a BVH spatial structure to speed up triangle ray intersections. Additionally, material sorting can be turned on, which improves performance with larger amounts of emmisive objects.
 
 ## GLTF Mesh loading with textures
 
@@ -20,14 +20,27 @@ https://sketchfab.com/3d-models/dark-knight-e2208bdc46304f6faa18728778986f35
 https://sketchfab.com/3d-models/rat-dd5d6fbd6edc42e9950778a4ea1fd352
 <img width="600" height="600" alt="cornell 2025-10-08_16-46-08z 5000samp" src="https://github.com/user-attachments/assets/80af86c2-37fc-495b-843c-b6fc86c0ee0f" />
 
-### Collector
-https://sketchfab.com/3d-models/collector-827d2795ae2a4e58bc1313f0d4a3ee48
-
 ## Specular Material
 <img width="600" height="600" alt="cornell 2025-09-27_09-20-49z 5000samp" src="https://github.com/user-attachments/assets/7866cb1f-654e-46f4-a407-be92631bf61d" />
 
 <img width="600" height="600" alt="cornell 2025-10-08_17-03-50z 5000samp" src="https://github.com/user-attachments/assets/fbfde5e2-57c9-4514-8194-f385a7297cba" />
 
+
+
+
+## Performance Analysis
+
+Firstly, we compare the render times between a sphere primitive, the dark knight model (44k triangles), and the rat model (100k triangles, with emmisive elements), within an open cornell box. We turn the BVH on and compare the performance between models, as well as the impacts of sorting the materials before shading.
+
+<img width="500" height="500" alt="bargraphmaker net-bargraph" src="https://github.com/user-attachments/assets/315f5418-e199-4546-8023-b19ef0e4a7ec" />
+
+As seen in the graph, the rendering cost for the mesh models is around 5 times for expensive than the sphere primitive. However, between the models, the rendering times the Rat is around 1.5 times more expensive to render than the Dark Knight without material sorting, and a lot closer in costs with material sorting. We see that in a model where most of the elements are the same material (Dark Knight), sorting the materials adds more to the rendering cost, while in a model with more material variation (Rat) we see it improve the rendering time, making it comparable to the dark knight.
+
+To better illustrate the performance gains from BVH, below is a graph showcasing render times with BVH turned off.
+
+<img width="500" height="500" alt="bargraphmaker net-bargraph(1)" src="https://github.com/user-attachments/assets/6d70d73e-9af4-4750-9e67-e822c5293536" />
+
+As seen above, the costs to render a single frame skyrocket. As it turns out, having to test a ray's intersection with hundreds of thousands of triangles is expensive. The BVH helps alleviate that by significantly reducing the number of triangles (logn instead of n) we have to test, at a small memory overhead.
 
 ## Gallery 
 
@@ -36,9 +49,6 @@ https://sketchfab.com/3d-models/collector-827d2795ae2a4e58bc1313f0d4a3ee48
 <img width="600" height="600" alt="pavelscene 2025-10-08_15-42-26z 5000samp" src="https://github.com/user-attachments/assets/d56b3977-ad76-4f72-9699-7464ecc9f32e" />
 
 <img width="600" height="600" alt="cornell 2025-10-09_02-06-51z 5000samp" src="https://github.com/user-attachments/assets/6a0abb18-48c1-4e1f-9a71-1d6776755d9b" />
-
-
-## Performance Analysis
 
 ## Models used
 
